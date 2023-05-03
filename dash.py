@@ -12,10 +12,10 @@ import time
 TITLE = "Stocks"
 STOCKS = ("BBAS3.SA", "KLBN3.SA", "PETR4.SA", "LREN3.SA")
 PERIOD = "5d"
-
+UPDATE = 5
 
 def fetch_stock_data(name):
-    try:
+    #try:
         while is_alive:
             stocksel = stocklist.get()
             if stocksel != "":
@@ -23,8 +23,6 @@ def fetch_stock_data(name):
                 pd.options.display.float_format = '{:,.2f}'.format
                 data = pd.DataFrame(stock.history(period=PERIOD))
                 data.index = data.index.strftime('%d/%m') # format date
-                financ = pd.DataFrame(stock.financials)
-                print(financ.keys)
                 
                 latest_price = data['Close'].iloc[-1]
                 open = data['Open'].iloc[-1]
@@ -45,17 +43,13 @@ def fetch_stock_data(name):
                 canvas.draw()
                 
                 lastUpdate.config(text="Last update: {}".format(datetime.now().strftime("%d/%m/%Y, %H:%M:%S")))
-            time.sleep(5)
+            time.sleep(UPDATE)
 
-    except Exception as e:
-        lastUpdate.config(text="Error fetching stock data")
+    #except Exception as e:
+        #lastUpdate.config(text="Error fetching stock data")
 
 def clicked():
     print("Clicked")
-
-def callbackSelect(event):
-    print("Changed")
-    #fetch_stock_data("changed")
 
 # Thread
 is_alive = True
@@ -72,7 +66,6 @@ stock1.grid(column=0, row=0)
 stocklist = ttk.Combobox(root, values=STOCKS, state="readonly", width=10)
 stocklist.current(0)
 stocklist.grid(column=1, row=0)
-stocklist.bind("<<ComboboxSelected>>", callbackSelect)
 
 refresh = tk.Button(root, text="Refresh", command=clicked)
 refresh.grid(column=2, row=0)
