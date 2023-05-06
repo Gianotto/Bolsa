@@ -6,15 +6,18 @@ import yfinance as yf
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import threading
-import time, sys
+import sys, time
 
 
 TITLE = "Stocks"
 STOCKS = ("BBAS3.SA", "KLBN3.SA", "PETR4.SA", "LREN3.SA")
-PERIOD = "5d"
-UPDATE = 5
+PERIOD = '5d'
+INTERVAL = '1h'
+UPDATE = 5 * 1000
 
 def fetch_stock_data():
+    global is_alive
+    is_alive = True
     try:
         if checkloop.get():
             index = stocklist.current() + 1
@@ -26,7 +29,7 @@ def fetch_stock_data():
             status.config(text="reading...")
             stock = yf.Ticker(stockselected)
             pd.options.display.float_format = '{:,.2f}'.format
-            data = pd.DataFrame(stock.history(period=PERIOD))
+            data = pd.DataFrame(stock.history(period=PERIOD, interval=INTERVAL))
             data.index = data.index.strftime('%d/%m') # format date
 
             latest_price = data['Close'].iloc[-1]
@@ -57,17 +60,21 @@ def fetch_stock_data():
             canvas.draw()
             status.config(text="Done")
             lastUpdate.config(text="Last update: {}".format(datetime.now().strftime("%d/%m/%Y, %H:%M:%S")), fg='black')
-
+        is_alive = False
     except Exception as e:
+        is_alive = False
         lastUpdate.config(text="Error fetching stock data", fg='red')
 
 def refresh():
     root.update()
     threading.Thread(target=fetch_stock_data).start()
-    root.after(5000, refresh)
+    root.after(UPDATE, refresh)
 
 def on_closing():
-    sys.exit()
+    if not is_alive:
+        sys.exit()
+    else:
+        lastUpdate.config(text="Waiting for updates to complete", fg='black')
 
 # Create the main window
 root = tk.Tk()
