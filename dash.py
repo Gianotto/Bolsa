@@ -6,14 +6,17 @@ import yfinance as yf
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import threading
-import sys, time
-
+import sys, io
+from telebot import TeleBot, util, types
 
 TITLE = "Stocks"
-STOCKS = ("BBAS3.SA", "KLBN3.SA", "PETR4.SA", "LREN3.SA")
+STOCKS = ("BBAS3.SA", "KLBN3.SA", "PETR4.SA", "LREN3.SA", "CYRE3.SA", "CPLE6.SA", "MDIA3.SA", "SANB11.SA", "SBFG3.SA", "BRFS3.SA")
 PERIOD = '5d'
 INTERVAL = '1h'
 UPDATE = 5 * 1000
+
+API_KEY = "6039135538:AAFZV6z2z-ns9I0tBG7O10M8WgKeenGa_qA"
+telebot = TeleBot(API_KEY, threaded=True)
 
 def fetch_stock_data():
     global is_alive
@@ -50,7 +53,7 @@ def fetch_stock_data():
             ax1.clear()
             ax1.plot(data['Close'], color=('green' if marketChange > 0 else 'red'))
             ax1.set_ylabel('Price')
-            ax1.set_title(f'Stock Price {PERIOD}')
+            ax1.set_title(f'{stockselected} : {PERIOD}')
 
             ax2.clear()
             ax2.bar(data['Volume'].index, data['Volume'], color='teal')
@@ -65,6 +68,82 @@ def fetch_stock_data():
         is_alive = False
         lastUpdate.config(text="Error fetching stock data", fg='red')
 
+def download_stocks():
+    dw = yf.download(STOCKS, period='5d', auto_adjust=True, group_by='ticker')
+    pd.options.display.float_format = '{:,.2f}'.format
+    dw = pd.DataFrame(dw)
+    dw.index = dw.index.strftime('%d/%m') # format date
+    mktChg = []
+    mktChgPct = []
+
+    for s in STOCKS:
+        latest_price = dw[s]['Close'].iloc[-1]
+        open = dw[s]['Open'].iloc[-1]
+        high = dw[s]['High'].iloc[-1]
+        low = dw[s]['Low'].iloc[-1]
+        marketChange = latest_price - dw[s]['Close'].iloc[-2]
+        marketChangePct = ((latest_price / dw[s]['Close'].iloc[-2]) - 1) * 100
+
+        #(mktchg=[0, 0, 0, 0, marketChange])
+        dw[s]['MktCgh'] = '0'
+
+        print(f"{s} {marketChange:.2f} ({marketChangePct:.2f}%) Close: {latest_price:.2f} | Open: {open:.2f} | High: {high:.2f} | Low: {low:.2f}")
+
+    print(dw['BBAS3.SA']['Volume'])
+    print(dw)
+
+def gen_graph(empresa):
+    if empresa != "":
+        stock = yf.Ticker(empresa)
+        pd.options.display.float_format = '{:,.2f}'.format
+        data = pd.DataFrame(stock.history(period=PERIOD, interval=INTERVAL))
+        data.index = data.index.strftime('%d/%m') # format date
+
+        latest_price = data['Close'].iloc[-1]
+        open = data['Open'].iloc[-1]
+        high = data['High'].iloc[-1]
+        low = data['Low'].iloc[-1]
+        marketChange = latest_price - stock.info['previousClose']
+        marketChangePct = ((latest_price / stock.info['previousClose']) - 1) * 100
+
+        # Figure for Telegrambot
+        img, (bx1, bx2) = plt.subplots(nrows=2, ncols=1, sharex=True, figsize=(6, 5), dpi=75)
+        bx1.clear()
+        bx1.plot(data['Close'], color=('green' if marketChange > 0 else 'red'))
+        bx1.set_ylabel('Price')
+        bx1.set_title(f'{empresa}: {latest_price:.4f} | ({marketChangePct:.4f}%) | {PERIOD}\nOpen: {open:.2f} | High: {high:.2f} | Low: {low:.2f}')
+
+        bx2.clear()
+        bx2.bar(data['Volume'].index, data['Volume'], color='teal')
+        bx2.set_ylabel('Volume')
+
+        buffer = io.BytesIO()
+        img.savefig(buffer, format='png')
+        buffer.seek(0)
+        image_png = buffer.getvalue()
+        buffer.close()
+
+        return image_png
+
+def get_stock_data(empresa):
+    if empresa != "":
+        stock = yf.Ticker(empresa)
+        pd.options.display.float_format = '{:,.2f}'.format
+        data = pd.DataFrame(stock.history(period=PERIOD, interval=INTERVAL))
+        data.index = data.index.strftime('%d/%m') # format date
+
+        latest_price = data['Close'].iloc[-1]
+        open = data['Open'].iloc[-1]
+        high = data['High'].iloc[-1]
+        low = data['Low'].iloc[-1]
+        marketChange = latest_price - stock.info['previousClose']
+        marketChangePct = ((latest_price / stock.info['previousClose']) - 1) * 100
+
+        return f"{empresa} : {latest_price:.4f} | {marketChange:.4f} | ({marketChangePct:.4f}%)\nPrevClose: {stock.info['previousClose']:.2f} | Open: {open:.2f} | High: {high:.2f} | Low: {low:.2f}"
+
+def bot_polling():
+    telebot.polling(timeout=5)
+
 def refresh():
     root.update()
     threading.Thread(target=fetch_stock_data).start()
@@ -72,9 +151,49 @@ def refresh():
 
 def on_closing():
     if not is_alive:
+        telebot.stop_bot()
+        bot_thread.join()
         sys.exit()
     else:
         lastUpdate.config(text="Waiting for updates to complete", fg='black')
+
+@telebot.message_handler(commands=['chatid'])
+def r_chatid(message):
+    telebot.send_message(message.chat.id, "chatid: {}".format(message.chat.id))
+
+@telebot.message_handler(commands=['help'])
+def r_help(message):
+    telebot.send_message(message.chat.id, "Comandos:\n/stock <EMPRESA>\n/graph <EMPRESA>")
+
+@telebot.message_handler(commands=['stock'])
+def r_stock(message):
+    empresa = util.extract_arguments(message.text)
+    if  empresa in STOCKS:
+        telebot.send_chat_action(message.chat.id, action='typing')
+        telebot.send_message(message.chat.id, get_stock_data(empresa.upper()))
+
+    elif empresa not in STOCKS:
+        markup = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True, one_time_keyboard=True)
+        for st in STOCKS:
+            markup.add(types.KeyboardButton("/stock " + st))
+        telebot.send_message(message.chat.id, "Escolha um:", reply_markup=markup)
+
+    else:
+        telebot.send_message(message.chat.id, "Use: /stock <EMPRESA>")
+
+@telebot.message_handler(commands=['top'])
+def r_top(message):
+    dw = download_stocks()
+    telebot.send_message(message.chat.id, "dw")
+
+@telebot.message_handler(commands=['graph'])
+def r_graph(message):
+    empresa = util.extract_arguments(message.text)
+    if empresa != "":
+        telebot.send_chat_action(message.chat.id, action='typing')
+        telebot.send_photo(message.chat.id, photo=gen_graph(empresa.upper()))
+    else:
+        telebot.send_message(message.chat.id, "Use: /graph <EMPRESA>")
 
 # Create the main window
 root = tk.Tk()
@@ -119,6 +238,12 @@ bt = tk.Frame(root)
 bt.grid(column=0, row=4)
 lastUpdate = tk.Label(bt, border=2)
 lastUpdate.grid(column=0, row=1)
+
+download_stocks()
+sys.exit()
+
+bot_thread = threading.Thread(target=bot_polling)
+bot_thread.start()
 
 # Start the main event loop
 refresh()
