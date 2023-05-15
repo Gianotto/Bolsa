@@ -239,8 +239,8 @@ bt.grid(column=0, row=4)
 lastUpdate = tk.Label(bt, border=2)
 lastUpdate.grid(column=0, row=1)
 
-download_stocks()
-sys.exit()
+#download_stocks()
+#sys.exit()
 
 bot_thread = threading.Thread(target=bot_polling)
 bot_thread.start()
