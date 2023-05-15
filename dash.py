@@ -6,7 +6,7 @@ import yfinance as yf
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import threading
-import sys, io
+import sys, io, time
 from telebot import TeleBot, util, types
 
 TITLE = "Stocks"
@@ -76,21 +76,27 @@ def download_stocks():
     mktChg = []
     mktChgPct = []
 
-    for s in STOCKS:
-        latest_price = dw[s]['Close'].iloc[-1]
-        open = dw[s]['Open'].iloc[-1]
-        high = dw[s]['High'].iloc[-1]
-        low = dw[s]['Low'].iloc[-1]
-        marketChange = latest_price - dw[s]['Close'].iloc[-2]
-        marketChangePct = ((latest_price / dw[s]['Close'].iloc[-2]) - 1) * 100
+    for t, df in dw.groupby(level=0):
 
-        #(mktchg=[0, 0, 0, 0, marketChange])
-        dw[s]['MktCgh'] = '0'
+        for s in STOCKS:
+            latest_price = df[s]['Close']
+            open = df[s]['Open']
+            high = df[s]['High']
+            low = df[s]['Low']
+            
+            marketChange = latest_price - df[s]['Close'].iloc[-1]
+            marketChangePct = ((latest_price / df[s]['Close'].iloc[-1]) - 1) * 100
 
-        print(f"{s} {marketChange:.2f} ({marketChangePct:.2f}%) Close: {latest_price:.2f} | Open: {open:.2f} | High: {high:.2f} | Low: {low:.2f}")
-
-    print(dw['BBAS3.SA']['Volume'])
-    print(dw)
+            mktChg.append(marketChange)
+            mktChgPct.append(marketChangePct)
+            
+            print(f"{s} {marketChange} ({marketChangePct}%) Close: {latest_price} | Open: {open} | High: {high} | Low: {low}")
+            dw[s, 'MktChg'] = marketChange
+        
+        
+    #dw[s, 'MktChg'] = mktChg
+    #dw.sort_index(axis=1)
+    #print(dw)
 
 def gen_graph(empresa):
     if empresa != "":
