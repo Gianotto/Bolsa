@@ -10,9 +10,9 @@ import sys, io, time
 from telebot import TeleBot, util, types
 
 TITLE = "Stocks"
-STOCKS = ("BBAS3.SA", "KLBN3.SA", "PETR4.SA", "LREN3.SA", "CYRE3.SA", "CPLE6.SA", "MDIA3.SA", "SANB11.SA", "SBFG3.SA", "BRFS3.SA")
-PERIOD = '5d'
-INTERVAL = '1h'
+STOCKS = ("BBAS3.SA", "R2BL34.SA", "KLBN3.SA", "PETR4.SA", "LREN3.SA", "CYRE3.SA", "CPLE6.SA", "MDIA3.SA", "SANB11.SA", "SBFG3.SA", "BRFS3.SA")
+PERIOD = '1mo'
+INTERVAL = '1d'
 UPDATE = 5 * 1000
 
 API_KEY = "6039135538:AAFZV6z2z-ns9I0tBG7O10M8WgKeenGa_qA"
