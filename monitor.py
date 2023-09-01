@@ -6,21 +6,19 @@ import sys, io
 from telebot import TeleBot, util, types
 import json, datetime
 import time
+import keyboard
 
 TITLE = "Stocks"
 STOCKS = ("BBAS3.SA", "BTC-USD", "BTC-BRL", "R2BL34.SA", "KLBN3.SA", "PETR4.SA", "LREN3.SA", "CYRE3.SA", "CPLE6.SA", "MDIA3.SA", "SANB11.SA", "SBFG3.SA", "BRFS3.SA", "VALE")
 PERIOD = '1mo'
 INTERVAL = '1wk'
 UPDATE = 60
-
-#stockdb = {
-#        "BBAS3.SA": [42.0000, 49.0000],
-#        "BTC-USD" : [25000.0000, 25999.0000]
-#}
-
-
 API_KEY = "6039135538:AAFZV6z2z-ns9I0tBG7O10M8WgKeenGa_qA"
+CHATID = "-954957403"
 telebot = TeleBot(API_KEY, threaded=True)
+
+# Hotkey to close program
+event = threading.Event()
 
 def writeData():
     with open("data_file.json", "w") as write_file:
@@ -29,41 +27,60 @@ def writeData():
 def loadData():
     with open("data_file.json", "r") as read_file:
         return json.load(read_file)
-    
 stockdb = loadData()
 
-def monitor_stocks():
-    global is_alive #control while data is collected
-    is_alive = True
-    while is_alive:
-        try:
-            for stock in stockdb:
-                stockyf = yf.Ticker(stock)
-                pd.options.display.float_format = '{:,.2f}'.format
-                data = pd.DataFrame(stockyf.history(period=PERIOD, interval=INTERVAL))
-                data.index = data.index.strftime('%d/%m') # format date
-                
-                latest_price = data['Close'].iloc[-1]
-                open = data['Open'].iloc[-1]
-                high = data['High'].iloc[-1]
-                low = data['Low'].iloc[-1]
-                marketChange = latest_price - stockyf.info['previousClose']
-                marketChangePct = ((latest_price / stockyf.info['previousClose']) - 1) * 100
+if __name__ == '__main__':
+        
+    def bot_polling():
+        #telebot.polling(non_stop=True, skip_pending=True, timeout=5)
+        telebot.infinity_polling()
 
-                stocklow = stockdb[stock]['LOW']
-                stockhigh = stockdb[stock]['HIGH']
+    def telebotSend(text):
+        # Create the initial graph canvas
+        plt.style.use('seaborn-v0_8-dark-palette')
+        plt.tight_layout()
+        telebot.send_message(CHATID, text)
 
-                if latest_price <= stocklow:
-                    print (f"{stock} atingiu loss em {latest_price:.4f} com target {stocklow}")
-                elif latest_price >= stockhigh:
-                    print (f"{stock} atingiu gain em {latest_price:.4f} com target {stockhigh}")
-                else:
-                    print (f"{stock} em monitoramento {latest_price:.4f}")
+    def monitor_stocks():
+        while not event.is_set():
+            try:
+                stockdb = loadData()
+                for stock in stockdb:
+                    stockyf = yf.Ticker(stock)
+                    pd.options.display.float_format = '{:,.2f}'.format
+                    data = pd.DataFrame(stockyf.history(period=PERIOD, interval=INTERVAL))
+                    data.index = data.index.strftime('%d/%m') # format date
+                    
+                    latest_price = data['Close'].iloc[-1]
+                    stocklow = stockdb[stock]['LOW']
+                    stockhigh = stockdb[stock]['HIGH']
 
-        except Exception as e:
-            print(e)
-            is_alive = False
-        time.sleep(UPDATE)
+                    if latest_price <= stocklow:
+                        telebotSend(f":stop_sign:ALERT: {stockyf.info['longName']}({stock}) atingiu loss em {latest_price:.4f} com target {stocklow}")
+                        print (f"{stock} atingiu loss em {latest_price:.4f} com target {stocklow}")
+                    elif latest_price >= stockhigh:
+                        telebotSend(f"ALERT: {stockyf.info['longName']}({stock}) atingiu gain em {latest_price:.4f} com target {stockhigh}")
+                        print (f"{stock} atingiu gain em {latest_price:.4f} com target {stockhigh}")
+                    else:
+                        print (f"{stock} em monitoramento {latest_price:.4f}")
+
+            except Exception as e:
+                print(e)
+                break
+
+            startTime = time.time()
+            while True:
+                elapsedTime = time.time() - startTime
+                time.sleep(0.5)
+                if elapsedTime >= UPDATE:
+                    print('---------------------------------------------')
+                    break
+            
+    bot_thread = threading.Thread(target=bot_polling)
+    bot_thread.start()
+
+    monitor_thread = threading.Thread(target=monitor_stocks)
+    monitor_thread.start()
 
 def gen_graph(empresa):
     if empresa != "":
@@ -128,15 +145,6 @@ def get_price(empresa):
 
         return f"{empresa} : {latest_price:.4f}"
 
-def bot_polling():
-    telebot.polling(timeout=5)
-
-def on_closing():
-    if not is_alive:
-        telebot.stop_bot()
-        bot_thread.join()
-        sys.exit()
-
 @telebot.message_handler(commands=['chatid'])
 def r_chatid(message):
     telebot.send_message(message.chat.id, "chatid: {}".format(message.chat.id))
@@ -159,25 +167,31 @@ def r_stock(message):
         telebot.send_chat_action(message.chat.id, action='typing')
         telebot.send_message(message.chat.id, get_stock_data(empresa.upper()))
 
-@telebot.message_handler(commands=['top'])
+@telebot.message_handler(commands=['monitor'])
 def r_top(message):
-    telebot.send_message(message.chat.id, get_price(util.extract_arguments(message.text).upper()))
+    msg = ''
+    for stock in stockdb:
+        msg += f"{stock} targets L:{stockdb[stock]['LOW']:.4f} | H:{stockdb[stock]['HIGH']:.4f}\n"
+    telebot.send_message(message.chat.id, msg)
 
 @telebot.message_handler(commands=['graph'])
 def r_graph(message):
     empresa = util.extract_arguments(message.text)
-    if empresa != "":
+    if len(empresa) <= 0:
+        markup = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True, one_time_keyboard=True)
+        for st in STOCKS:
+            markup.add(types.KeyboardButton("/graph " + st))
+        telebot.send_message(message.chat.id, "Escolha uma", reply_markup=markup)
+
+    else:
         telebot.send_chat_action(message.chat.id, action='typing')
         telebot.send_photo(message.chat.id, photo=gen_graph(empresa.upper()))
-    else:
-        telebot.send_message(message.chat.id, "Use: /graph <EMPRESA>")
 
-# Create the initial graph canvas
-plt.style.use('seaborn-v0_8-dark-palette')
-plt.tight_layout()
+def on_closing():
+    print("Closing all processes. Exiting...")
+    event.set()
+    telebot.stop_bot()
+    bot_thread.join()
+    sys.exit()
 
-bot_thread = threading.Thread(target=bot_polling)
-bot_thread.start()
-
-monitor_thread = threading.Thread(target=monitor_stocks)
-monitor_thread.start()
+#keyboard.add_hotkey("ctrl+e", on_closing())
