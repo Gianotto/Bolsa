@@ -9,7 +9,7 @@ import json
 import time
 
 TITLE = "Stocks"
-STOCKS = ("BBAS3.SA", "BTC-USD", "BTC-BRL", "R2BL34.SA", "KLBN3.SA", "PETR4.SA", "LREN3.SA", "CYRE3.SA", "CPLE6.SA", "MDIA3.SA", "SANB11.SA", "SBFG3.SA", "BRFS3.SA", "VALE")
+STOCKS = ("BBAS3.SA", "VALE", "BTC-USD", "R2BL34.SA", "KLBN3.SA", "PETR4.SA", "LREN3.SA", "CYRE3.SA", "CPLE6.SA", "MDIA3.SA", "SANB11.SA", "SBFG3.SA", "BRFS3.SA")
 PERIOD = '3mo'
 INTERVAL = '1wk'
 UPDATE = 60
@@ -159,13 +159,14 @@ if __name__ == '__main__':
                         print (f"{stock} atingiu loss em {latest_price:.4f} com target {stocklow}")
                     elif latest_price >= stockhigh:
                         telebotSend(f"ALERT: {stockyf.info['longName']}({stock}) atingiu gain em {latest_price:.4f} com target H:{stockhigh}")
-                        print (f"{stock} atingiu gain em {latest_price:.4f} com target {stockhigh}")
+                        print (f"{stockyf.info['longName']}({stock}) atingiu gain em {latest_price:.4f} com target {stockhigh}")
                     else:
-                        print (f"{stock} em monitoramento {latest_price:.4f}")
+                        print (f"{stockyf.info['longName']}({stock}) em monitoramento {latest_price:.4f}")
 
             except Exception as e:
-                print(e)
-                break
+                print('Monitor error: {}'.format(e))
+                #print('Monitor closed.')
+                
 
             startTime = time.time()
             while True:
