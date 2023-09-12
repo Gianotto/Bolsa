@@ -10,10 +10,10 @@ import sys, io
 from telebot import TeleBot, util, types
 
 TITLE = "Stocks"
-STOCKS = ("BBAS3.SA", "R2BL34.SA", "KLBN3.SA", "PETR4.SA", "LREN3.SA", "CYRE3.SA", "CPLE6.SA", "MDIA3.SA", "SANB11.SA", "SBFG3.SA", "BRFS3.SA")
-PERIOD = '5d'
-INTERVAL = '1h'
-UPDATE = 5 * 1000
+STOCKS = ("BBAS3.SA", "BTC-USD", "R2BL34.SA", "KLBN3.SA", "PETR4.SA", "LREN3.SA", "CYRE3.SA", "CPLE6.SA", "MDIA3.SA", "SANB11.SA", "SBFG3.SA", "BRFS3.SA", "VALE")
+PERIOD = '1mo'
+INTERVAL = '1wk'
+UPDATE = 60 * 1000
 
 API_KEY = "6039135538:AAFZV6z2z-ns9I0tBG7O10M8WgKeenGa_qA"
 telebot = TeleBot(API_KEY, threaded=True)
@@ -147,6 +147,17 @@ def get_stock_data(empresa):
 
         return f"{empresa} : {latest_price:.4f} | {marketChange:.4f} | ({marketChangePct:.4f}%)\nPrevClose: {stock.info['previousClose']:.2f} | Open: {open:.2f} | High: {high:.2f} | Low: {low:.2f}"
 
+def get_price(empresa):
+    if empresa != "":
+        stock = yf.Ticker(empresa)
+        pd.options.display.float_format = '{:,.2f}'.format
+        data = pd.DataFrame(stock.history(period=PERIOD, interval=INTERVAL))
+        data.index = data.index.strftime('%d/%m') # format date
+
+        latest_price = data['Close'].iloc[-1]
+
+        return f"{empresa} : {latest_price:.4f}"
+
 def bot_polling():
     telebot.polling(timeout=5)
 
@@ -169,7 +180,7 @@ def r_chatid(message):
 
 @telebot.message_handler(commands=['help'])
 def r_help(message):
-    telebot.send_message(message.chat.id, "Comandos:\n/stock <EMPRESA>\n/graph <EMPRESA>")
+    telebot.send_message(message.chat.id, "Comandos:\n/stock EMPRESA\n/graph EMPRESA")
 
 @telebot.message_handler(commands=['stock'])
 def r_stock(message):
@@ -189,8 +200,9 @@ def r_stock(message):
 
 @telebot.message_handler(commands=['top'])
 def r_top(message):
-    dw = download_stocks()
-    telebot.send_message(message.chat.id, "dw")
+    #dw = download_stocks()
+
+    telebot.send_message(message.chat.id, get_price(util.extract_arguments(message.text).upper()))
 
 @telebot.message_handler(commands=['graph'])
 def r_graph(message):
@@ -208,11 +220,11 @@ root.title(TITLE)
 root.protocol("WM_DELETE_WINDOW", on_closing)
 
 fr = tk.Frame(root)
-fr.grid(column=0, row=1)
+fr.grid(column=0, row=0)
 
 # Create labels to display the values
 stock1 = tk.Label(root)
-stock1.grid(column=0, row=0)
+stock1.grid(column=0, row=1)
 
 stocksel = tk.Label(fr)
 stocksel.grid(column=0, row=1)
@@ -245,6 +257,7 @@ bt.grid(column=0, row=4)
 lastUpdate = tk.Label(bt, border=2)
 lastUpdate.grid(column=0, row=1)
 
+## Testing purposes
 #download_stocks()
 #sys.exit()
 

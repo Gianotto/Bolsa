@@ -1,4 +1,5 @@
 import numpy as np
+import time, sys
 
 arr = np.array([[1, 2, 3], [4, 5, 6]])
 
@@ -18,3 +19,14 @@ print (d)
 x = np.cos(np.pi/2)
 
 print(x)
+
+
+startTime = time.time()
+while True:
+    elapsedTime = time.time() - startTime
+    print('.', end="")
+    sys.stdout = "..."
+    time.sleep(0.5)
+    if elapsedTime >= 10:
+        print('')
+        break
