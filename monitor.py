@@ -131,6 +131,10 @@ def r_graph(message):
         telebot.send_chat_action(message.chat.id, action='typing')
         telebot.send_photo(message.chat.id, photo=gen_graph(empresa.upper()))
 
+def toPercent(value, max):
+    c = (value * 100) / max
+    return f"{c:.0f}"
+
 if __name__ == '__main__':
         
     def bot_polling():
@@ -171,8 +175,8 @@ if __name__ == '__main__':
             startTime = time.time()
             while True:
                 elapsedTime = time.time() - startTime
-                print('-', end='')
-                time.sleep(0.5)
+                print('Refreshing in', toPercent(elapsedTime, UPDATE), end='\r')
+                time.sleep(1)
                 if elapsedTime >= UPDATE:
                     print('')
                     break

@@ -20,13 +20,19 @@ x = np.cos(np.pi/2)
 
 print(x)
 
+MAX_WAIT = 10
 
+def toPercent(value, max):
+    c = (value * 100) / max
+    return f"{c:.0f} %"
+  
 startTime = time.time()
 while True:
     elapsedTime = time.time() - startTime
-    print('.', end="")
-    sys.stdout = "..."
+    #print('.')#, end="")
+    print(toPercent(elapsedTime, MAX_WAIT), end='\r')
+    
     time.sleep(0.5)
-    if elapsedTime >= 10:
+    if elapsedTime >= MAX_WAIT:
         print('')
         break
