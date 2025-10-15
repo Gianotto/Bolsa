@@ -9,8 +9,8 @@ import json
 import time
 
 TITLE = "Stocks"
-STOCKS = ("BBAS3.SA", "VALE", "BTC-USD", "R2BL34.SA", "KLBN3.SA", "PETR4.SA", "LREN3.SA", "CYRE3.SA", "CPLE6.SA", "MDIA3.SA", "SANB11.SA", "SBFG3.SA", "BRFS3.SA")
-PERIOD = '3mo'
+STOCKS = ("BBAS3.SA", "BTC-USD", "BTC-BRL", "R2BL34.SA", "KLBN3.SA", "PETR4.SA", "LREN3.SA", "CYRE3.SA", "CPLE6.SA", "MDIA3.SA", "SANB11.SA", "SBFG3.SA", "BRFS3.SA", "VALE")
+PERIOD = '1mo'
 INTERVAL = '1wk'
 UPDATE = 60
 API_KEY = "6039135538:AAGWdNUSlHAs1MaO8yEt8X7NdcBbyRs8QXM"
@@ -49,7 +49,7 @@ def gen_graph(empresa):
         img, bx1 = mpf.plot(datac, type='candle', style='yahoo', mav=4, volume=True, datetime_format='%d - %m - %Y',
                             scale_padding = scale_config, update_width_config = width_config, 
                             returnfig=True, figsize=(12, 8),
-                            title=f'\n{stock.info["longName"]}({empresa}) | {PERIOD}\nPrice: {latest_price:.4f} | {sign}{marketChange:.2f} | {marketChangePct:.4f}%')
+                            title=f'\n{stock.info["longName"]}({empresa}) | {PERIOD} | MMóvel: 4\nPrice: {latest_price:.2f} | {sign}{marketChange:.2f} | {marketChangePct:.2f}%')
         
         buffer = io.BytesIO()
         img.savefig(buffer, format='png')
@@ -74,7 +74,7 @@ def get_stock_data(empresa):
             marketChange = latest_price - stock.info['previousClose']
             marketChangePct = ((latest_price / stock.info['previousClose']) - 1) * 100
             #print(stock.info)
-            return f"{stock.info['longName']} ({empresa}) : {latest_price:.4f} | {marketChange:.4f} | ({marketChangePct:.4f}%)\nPrevClose: {stock.info['previousClose']:.2f} | Open: {open:.2f} | High: {high:.2f} | Low: {low:.2f}"
+            return f"{stock.info['longName']} ({empresa}) : {latest_price:.2f} | {marketChange:.2f} | ({marketChangePct:.2f}%)\nPrevClose: {stock.info['previousClose']:.2f} | Open: {open:.2f} | High: {high:.2f} | Low: {low:.2f}"
     except Exception as e:
         return "Could not retrive ticker data."
 
@@ -87,7 +87,7 @@ def get_price(empresa):
 
         latest_price = data['Close'].iloc[-1]
 
-        return f"{empresa} : {latest_price:.4f}"
+        return f"{empresa} : {latest_price:.2f}"
 
 @telebot.message_handler(commands=['chatid'])
 def r_chatid(message):
@@ -115,7 +115,7 @@ def r_stock(message):
 def r_monitor(message):
     msg = ''
     for stock in stockdb:
-        msg += f"{stock} targets L:{stockdb[stock]['LOW']:.4f} | H:{stockdb[stock]['HIGH']:.4f}\n"
+        msg += f"{stock} targets L:{stockdb[stock]['LOW']:.2f} | H:{stockdb[stock]['HIGH']:.2f}\n"
     telebot.send_message(message.chat.id, msg)
 
 @telebot.message_handler(commands=['graph'])
@@ -159,23 +159,22 @@ if __name__ == '__main__':
                     stockhigh = stockdb[stock]['HIGH']
 
                     if latest_price <= stocklow:
-                        telebotSend(f":stop_sign:ALERT: {stockyf.info['longName']}({stock}) atingiu loss em {latest_price:.4f} com target L:{stocklow}")
-                        print (f"{stock} atingiu loss em {latest_price:.4f} com target {stocklow}")
+                        telebotSend(f":stop_sign:ALERT: {stockyf.info['longName']}({stock}) atingiu loss em {latest_price:.2f} com target L:{stocklow}")
+                        print (f"{stock} atingiu loss em {latest_price:.2f} com target {stocklow}")
                     elif latest_price >= stockhigh:
                         telebotSend(f"ALERT: {stockyf.info['longName']}({stock}) atingiu gain em {latest_price:.4f} com target H:{stockhigh}")
-                        print (f"{stockyf.info['longName']}({stock}) atingiu gain em {latest_price:.4f} com target {stockhigh}")
+                        print (f"{stock} atingiu gain em {latest_price:.4f} com target {stockhigh}")
                     else:
-                        print (f"{stockyf.info['longName']}({stock}) em monitoramento {latest_price:.4f}")
+                        print (f"{stock} em monitoramento {latest_price:.4f}")
 
             except Exception as e:
-                print('Monitor error: {}'.format(e))
-                #print('Monitor closed.')
-                
+                #print(e)
+                break
 
             startTime = time.time()
             while True:
                 elapsedTime = time.time() - startTime
-                print('Refreshing in', toPercent(elapsedTime, UPDATE), end='\r')
+                print(f"Refreshing in {(UPDATE - elapsedTime):.0f}", end='\r')
                 time.sleep(1)
                 if elapsedTime >= UPDATE:
                     print('')
@@ -192,11 +191,12 @@ if __name__ == '__main__':
         if not monitor_thread.is_alive():
             print("Stocks Monitor started.")
             monitor_thread.start()
-
+            
         time.sleep(1)
         
     if event.is_set():
         #End processes
+        print('Exiting...')
         telebot.stop_bot()
         bot_thread.join()
         sys.exit()

@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
     "BBAS3.SA": {
             "LOW": 42.0,
             "HIGH": 52.0
@@ -10,5 +11,14 @@
     "PCARV363": {
         "LOW": 10.0,
         "HIGH": 25.0
+=======
+    "BTC-USD": {
+        "LOW": 94100.0, 
+        "HIGH": 100000.0
+    },
+    "TRUMP-OFFICIAL-USD": {
+        "LOW": 17, 
+        "HIGH": 30
+>>>>>>> 3ecf8b9db9e89c773b4edeba4d444aacc3f6c7f0
     }
 }
