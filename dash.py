@@ -6,7 +6,7 @@ import yfinance as yf
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import threading
-import sys, io, time
+import sys, io
 from telebot import TeleBot, util, types
 
 TITLE = "Stocks"

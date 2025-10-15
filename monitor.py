@@ -9,8 +9,8 @@ import json
 import time
 
 TITLE = "Stocks"
-STOCKS = ("BBAS3.SA", "R2BL34.SA", "KLBN3.SA", "PETR4.SA", "LREN3.SA", "CYRE3.SA", "CPLE6.SA", "MDIA3.SA", "SANB11.SA", "SBFG3.SA", "BRFS3.SA", "VALE")
-PERIOD = '3mo'
+STOCKS = ("BBAS3.SA", "BTC-USD", "BTC-BRL", "R2BL34.SA", "KLBN3.SA", "PETR4.SA", "LREN3.SA", "CYRE3.SA", "CPLE6.SA", "MDIA3.SA", "SANB11.SA", "SBFG3.SA", "BRFS3.SA", "VALE")
+PERIOD = '1mo'
 INTERVAL = '1wk'
 UPDATE = 60
 API_KEY = "6039135538:AAFZV6z2z-ns9I0tBG7O10M8WgKeenGa_qA"
@@ -131,6 +131,10 @@ def r_graph(message):
         telebot.send_chat_action(message.chat.id, action='typing')
         telebot.send_photo(message.chat.id, photo=gen_graph(empresa.upper()))
 
+def toPercent(value, max):
+    c = (value * 100) / max
+    return f"{c:.0f}"
+
 if __name__ == '__main__':
         
     def bot_polling():
@@ -158,21 +162,20 @@ if __name__ == '__main__':
                         telebotSend(f":stop_sign:ALERT: {stockyf.info['longName']}({stock}) atingiu loss em {latest_price:.2f} com target L:{stocklow}")
                         print (f"{stock} atingiu loss em {latest_price:.2f} com target {stocklow}")
                     elif latest_price >= stockhigh:
-                        telebotSend(f"ALERT: {stockyf.info['longName']}({stock}) atingiu gain em {latest_price:.2f} com target H:{stockhigh}")
-                        print (f"{stock} atingiu gain em {latest_price:.2f} com target {stockhigh}")
+                        telebotSend(f"ALERT: {stockyf.info['longName']}({stock}) atingiu gain em {latest_price:.4f} com target H:{stockhigh}")
+                        print (f"{stock} atingiu gain em {latest_price:.4f} com target {stockhigh}")
                     else:
-                        print (f"{stock} em monitoramento {latest_price:.2f}")
+                        print (f"{stock} em monitoramento {latest_price:.4f}")
 
             except Exception as e:
-                print(e)
-                event.set()
+                #print(e)
                 break
 
             startTime = time.time()
             while True:
                 elapsedTime = time.time() - startTime
-                print('-', end='')
-                time.sleep(0.5)
+                print(f"Refreshing in {(UPDATE - elapsedTime):.0f}", end='\r')
+                time.sleep(1)
                 if elapsedTime >= UPDATE:
                     print('')
                     break
@@ -188,7 +191,7 @@ if __name__ == '__main__':
         if not monitor_thread.is_alive():
             print("Stocks Monitor started.")
             monitor_thread.start()
-
+            
         time.sleep(1)
         
     if event.is_set():
