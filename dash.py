@@ -10,20 +10,17 @@ import sys, io
 from telebot import TeleBot, util, types
 
 TITLE = "Stocks"
-STOCKS = ("BBAS3.SA", "BTC-USD", "R2BL34.SA", "KLBN3.SA", "PETR4.SA", "LREN3.SA", "CYRE3.SA", "CPLE6.SA", "MDIA3.SA", "SANB11.SA", "SBFG3.SA", "BRFS3.SA", "VALE")
+STOCKS = ("PCAR3.SA")
 PERIOD = '1mo'
 INTERVAL = '1wk'
-UPDATE = 60 * 1000
-
-API_KEY = "6039135538:AAFZV6z2z-ns9I0tBG7O10M8WgKeenGa_qA"
-telebot = TeleBot(API_KEY, threaded=True)
+UPDATE = 10 * 1000
 
 def fetch_stock_data():
     global is_alive
     is_alive = True
     try:
         if checkloop.get():
-            index = stocklist.current() + 1
+            index = stocklist.current()
             if index >= len(STOCKS): index = 0
             stocklist.current(index)
 
@@ -66,10 +63,11 @@ def fetch_stock_data():
         is_alive = False
     except Exception as e:
         is_alive = False
+        print(e)
         lastUpdate.config(text="Error fetching stock data", fg='red')
 
 def download_stocks():
-    dw = yf.download(STOCKS, period='5d', auto_adjust=True, group_by='ticker')
+    dw = yf.download(STOCKS, period=PERIOD, auto_adjust=True, group_by='ticker')
     pd.options.display.float_format = '{:,.2f}'.format
     dw = pd.DataFrame(dw)
     dw.index = dw.index.strftime('%d/%m') # format date
@@ -158,8 +156,6 @@ def get_price(empresa):
 
         return f"{empresa} : {latest_price:.4f}"
 
-def bot_polling():
-    telebot.polling(timeout=5)
 
 def refresh():
     root.update()
@@ -168,50 +164,9 @@ def refresh():
 
 def on_closing():
     if not is_alive:
-        telebot.stop_bot()
-        bot_thread.join()
         sys.exit()
     else:
         lastUpdate.config(text="Waiting for updates to complete", fg='black')
-
-@telebot.message_handler(commands=['chatid'])
-def r_chatid(message):
-    telebot.send_message(message.chat.id, "chatid: {}".format(message.chat.id))
-
-@telebot.message_handler(commands=['help'])
-def r_help(message):
-    telebot.send_message(message.chat.id, "Comandos:\n/stock EMPRESA\n/graph EMPRESA")
-
-@telebot.message_handler(commands=['stock'])
-def r_stock(message):
-    empresa = util.extract_arguments(message.text)
-    if  empresa in STOCKS:
-        telebot.send_chat_action(message.chat.id, action='typing')
-        telebot.send_message(message.chat.id, get_stock_data(empresa.upper()))
-
-    elif empresa not in STOCKS:
-        markup = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True, one_time_keyboard=True)
-        for st in STOCKS:
-            markup.add(types.KeyboardButton("/stock " + st))
-        telebot.send_message(message.chat.id, "Escolha um:", reply_markup=markup)
-
-    else:
-        telebot.send_message(message.chat.id, "Use: /stock <EMPRESA>")
-
-@telebot.message_handler(commands=['top'])
-def r_top(message):
-    #dw = download_stocks()
-
-    telebot.send_message(message.chat.id, get_price(util.extract_arguments(message.text).upper()))
-
-@telebot.message_handler(commands=['graph'])
-def r_graph(message):
-    empresa = util.extract_arguments(message.text)
-    if empresa != "":
-        telebot.send_chat_action(message.chat.id, action='typing')
-        telebot.send_photo(message.chat.id, photo=gen_graph(empresa.upper()))
-    else:
-        telebot.send_message(message.chat.id, "Use: /graph <EMPRESA>")
 
 # Create the main window
 root = tk.Tk()
@@ -256,13 +211,6 @@ bt = tk.Frame(root)
 bt.grid(column=0, row=4)
 lastUpdate = tk.Label(bt, border=2)
 lastUpdate.grid(column=0, row=1)
-
-## Testing purposes
-#download_stocks()
-#sys.exit()
-
-bot_thread = threading.Thread(target=bot_polling)
-bot_thread.start()
 
 # Start the main event loop
 refresh()

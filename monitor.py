@@ -13,7 +13,7 @@ STOCKS = ("BBAS3.SA", "VALE", "BTC-USD", "R2BL34.SA", "KLBN3.SA", "PETR4.SA", "L
 PERIOD = '3mo'
 INTERVAL = '1wk'
 UPDATE = 60
-API_KEY = "6039135538:AAFZV6z2z-ns9I0tBG7O10M8WgKeenGa_qA"
+API_KEY = "6039135538:AAGWdNUSlHAs1MaO8yEt8X7NdcBbyRs8QXM"
 CHATID = "-954957403"
 telebot = TeleBot(API_KEY, threaded=True)
 telebot.set_my_commands(['help', 'stock', 'graph', 'monitor'])
